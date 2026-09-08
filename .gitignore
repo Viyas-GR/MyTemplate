@@ -33,6 +33,7 @@ __pycache__
 database.db
 .vscode
 .pytest_cache
+reports/
 
 # Sphinx
 docs/_build

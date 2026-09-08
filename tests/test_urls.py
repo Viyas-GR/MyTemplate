@@ -13,6 +13,12 @@ class TestURLs:
         """ Tests if the home page loads """
         expect_response('/', 200, testapp)
 
+    def test_privacy(self, testapp):
+        """Tests if the privacy page loads."""
+        response = testapp.get('/privacy')
+        assert response.status_code == 200
+        assert b'PRIVACY POLICY' in response.data
+
     def test_login(self, testapp):
         """ Tests if the login page loads """
         expect_response('/login', 200, testapp)

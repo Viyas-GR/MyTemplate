@@ -11,8 +11,8 @@ class Branding:
     @property
     def name(self):
         if self.environment == "dev":
-            return "appname-dev"
-        return "appname"
+            return "MyTemplate"
+        return "MyTemplate"
 
     @property
     def support_email(self):

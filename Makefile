@@ -1,18 +1,21 @@
-.PHONY: docs test agent-setup agent-resetdb agent-smoke agent-test
+.PHONY: help env deps clean lint test coverage security ui-test validate agent-setup agent-resetdb agent-smoke agent-test
 
 VENV_PYTHON=env/bin/python
 AGENT_TEST_FILES=$(shell git ls-files 'tests/*.py')
+RUFF=env/bin/ruff
+BANDIT=env/bin/bandit
+PYTEST=$(VENV_PYTHON) -m pytest
 
 help:
-	@echo "  env         create a development environment using virtualenv"
-	@echo "  deps        install dependencies using pip"
-	@echo "  clean       remove unwanted files like .pyc's"
-	@echo "  lint        check style with flake8"
-	@echo "  test        run all your tests using py.test"
-	@echo "  agent-setup install dependencies in ./env for AI/code agents"
-	@echo "  agent-resetdb reset and seed local development database"
-	@echo "  agent-smoke run fast smoke tests"
-	@echo "  agent-test  run full test suite with coverage"
+	@echo "  env       create development environment"
+	@echo "  deps      install dependencies"
+	@echo "  clean     remove temporary files"
+	@echo "  lint      run Ruff checks"
+	@echo "  test      run backend tests"
+	@echo "  coverage  run tests with JUnit and coverage reports"
+	@echo "  security  run Bandit security scan"
+	@echo "  ui-test   run Playwright UI tests"
+	@echo "  validate  run all local QA checks"
 
 env:
 	python3 -m venv env && \
@@ -20,16 +23,38 @@ env:
 	make deps
 
 deps:
-	pip install -r requirements.txt
+	$(VENV_PYTHON) -m pip install -r requirements.txt
 
 clean:
-	find . | grep -E "(__pycache__|\.pyc|\.DS_Store|\.db|\.pyo$\)" | xargs rm -rf
+	find . | grep -E "(__pycache__|\.pyc|\.DS_Store|\.db|\.pyo$$)" | xargs -r rm -rf
 
 lint:
-	flake8 --exclude=env .
+	$(RUFF) check appname tests
 
 test:
-	py.test tests
+	APPNAME_ENV=test $(PYTEST) -q
+
+coverage:
+	mkdir -p reports
+	APPNAME_ENV=test $(PYTEST) \
+		--junitxml=reports/junit.xml \
+		--cov=appname \
+		--cov-report=term-missing \
+		--cov-report=xml:reports/coverage.xml \
+		--cov-report=html:reports/coverage-html \
+		-q
+
+security:
+	mkdir -p reports
+	$(BANDIT) -r appname -f json -o reports/bandit.json
+	$(VENV_PYTHON) -c "import json; d=json.load(open('reports/bandit.json')); print('High:', d['metrics']['_totals']['SEVERITY.HIGH']); print('Medium:', d['metrics']['_totals']['SEVERITY.MEDIUM']); print('Low:', d['metrics']['_totals']['SEVERITY.LOW']); print('Issues:', len(d['results']))"
+
+ui-test:
+	APPNAME_ENV=dev $(PYTEST) -q tests/ui/
+
+validate: lint coverage security
+	@echo "QA validation completed."
+
 
 agent-setup:
 	python3 -m venv env

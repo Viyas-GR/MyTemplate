@@ -1,4 +1,4 @@
-name: Flask PyTest CI
+name: MyTemplate QA
 
 on:
   push:
@@ -7,30 +7,122 @@ on:
     branches: ["*"]
 
 jobs:
-  build:
+  tests:
+    name: Backend tests - Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+
     strategy:
       max-parallel: 2
       matrix:
-        python-version: [3.12, 3.13]
+        python-version: ["3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install Dependencies
+          cache: pip
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install -r requirements.txt
 
-      - name: Run Tests
+      - name: Run backend tests
+        env:
+          APPNAME_ENV: test
         run: |
-          py.test --junitxml=test-reports/results.xml --cov-report term-missing --cov=appname tests/
+          python -m pytest -q tests/ --junitxml=test-reports/results.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results-python-${{ matrix.python-version }}
+          path: test-reports/
+          if-no-files-found: ignore
+
+  quality:
+    name: QA and UI checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run Ruff
+        run: |
+          mkdir -p reports
+          ruff check appname tests --output-format=json > reports/ruff.json
+          ruff check appname tests
+
+      - name: Run Bandit
+        run: |
+          mkdir -p reports
+          bandit -r appname -f json -o reports/bandit.json
+          python -c "import json; d=json.load(open('reports/bandit.json')); print('High:', d['metrics']['_totals']['SEVERITY.HIGH']); print('Medium:', d['metrics']['_totals']['SEVERITY.MEDIUM']); print('Low:', d['metrics']['_totals']['SEVERITY.LOW']); print('Issues:', len(d['results']))"
+
+      - name: Run tests with coverage
+        env:
+          APPNAME_ENV: test
+        run: |
+          python -m pytest \
+            --junitxml=reports/junit.xml \
+            --cov=appname \
+            --cov-report=term-missing \
+            --cov-report=xml:reports/coverage.xml \
+            --cov-report=html:reports/coverage-html \
+            -q tests/
+
+      - name: Install Playwright browsers
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Start Flask server
+        env:
+          APPNAME_ENV: dev
+        run: |
+          python manage.py server > /tmp/mytemplate-server.log 2>&1 &
+          echo $! > /tmp/mytemplate-server.pid
+
+      - name: Wait for Flask server
+        run: |
+          for i in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:5000/ > /dev/null; then
+              echo "Flask server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Flask server did not start."
+          cat /tmp/mytemplate-server.log
+          exit 1
+
+      - name: Run Playwright UI tests
+        run: |
+          python -m pytest -q tests/ui/
+
+      - name: Upload QA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-reports
+          path: |
+            reports/
+            /tmp/mytemplate-server.log
+          if-no-files-found: ignore

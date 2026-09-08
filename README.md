@@ -1,8 +1,9 @@
 [![Ignite](https://user-images.githubusercontent.com/882381/45938197-49cfb880-bf7c-11e8-91ea-94fffd9d054a.png)](https://github.com/sumukh/ignite)
 
-# Ignite for Flask [![Flask PyTest CI](https://github.com/Sumukh/Ignite/actions/workflows/flask-pytest.yml/badge.svg)](https://github.com/Sumukh/Ignite/actions/workflows/flask-pytest.yml)
 
-Ignite is a scaffold for starting new SaaS applications built using Python and Flask. It takes care of the boilerplate code (like User Registration, OAuth, Teams, and Billing), allowing you to focus on building your application. Ignite is built upon best practices for modern Flask applications.
+# MyTemplate for Flask [![MyTemplate QA](https://github.com/Sumukh/Ignite/actions/workflows/flask-pytest.yml/badge.svg)](https://github.com/Sumukh/Ignite/actions/workflows/flask-pytest.yml)
+
+MyTemplate is a scaffold for starting new SaaS applications built using Python and Flask. It takes care of the boilerplate code (like User Registration, OAuth, Teams, and Billing), allowing you to focus on building your application. MyTemplate is built upon best practices for modern Flask applications.
 
 ## Features
 
@@ -21,7 +22,7 @@ Ignite is a scaffold for starting new SaaS applications built using Python and F
 | Basic Test Suite                      | ✅                                           | Starting point for you to build out tests                                                  |
 | VS Code Debugger & Editor             | ✅                                           | Configured to make you productive                                                          |
 | Tested on Windows 10, OSX, and Ubuntu | ✅                                           | Using Python 3                                                                             |
-| SaaS Recurring Billing                | 💲 (Requires purchasing a license to Ignite) | Team Billing, Usage Based Billing or Unlimited Plans                                       |
+| SaaS Recurring Billing                | 💲 (Requires purchasing a license for the original Ignite project) | Team Billing, Usage Based Billing or Unlimited Plans                                       |
 | Commercial Usage                      | 💲 (License Required)                        | Commercial Usage requires a purchased license                                              |
 | Video Content                         | 💲                                           | Available as part of [the Fullstack Flask course](https://www.newline.co/fullstack-flask/) |
 
@@ -68,13 +69,29 @@ FLASK_APP=manage flask --debug run
 
 ## Testing
 
-Github Actions is configured to run tests and produce code coverage metrics.
+GitHub Actions runs the QA pipeline on every push and pull request.
 
-To run tests locally, try this command:
+The local QA checks are available through the Makefile:
 
+```bash
+make lint
+make test
+make coverage
+make security
+make ui-test
+make validate
 ```
-APPNAME_ENV=test ./manage.py test --coverage
-```
+
+### Test and QA checks
+
+- **Backend tests:** pytest
+- **UI tests:** Playwright with pytest-playwright
+- **Linting:** Ruff
+- **Security scanning:** Bandit
+- **Coverage:** pytest-cov
+- **Reports:** JUnit XML, coverage XML/HTML, Ruff JSON, and Bandit JSON
+
+Coverage and test reports are written to the `reports/` directory locally. CI uploads the generated reports as GitHub Actions artifacts.
 
 ### Local Secrets
 
@@ -91,7 +108,7 @@ You may also want to change some of the constants in `appname.constants` and the
 
 ## Deployment
 
-Ignite is not tied to a specific platform for deployment, but it works well on [Heroku](http://heroku.com) and [Dokku](http://dokku.viewdocs.io/dokku/) with minimal configuration.
+MyTemplate is not tied to a specific platform for deployment, but it works well on [Heroku](http://heroku.com) and [Dokku](http://dokku.viewdocs.io/dokku/) with minimal configuration.
 
 It is also designed to work well on other cloud providers such as AWS, Google Cloud, and DigitalOcean.
 
