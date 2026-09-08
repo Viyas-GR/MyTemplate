@@ -35,7 +35,7 @@ jobs:
         env:
           APPNAME_ENV: test
         run: |
-          python -m pytest -q tests/ --junitxml=test-reports/results.xml
+          python -m pytest -q tests/ --ignore=tests/ui --junitxml=test-reports/results.xml
 
       - name: Upload test report
         if: always()
@@ -86,7 +86,7 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml:reports/coverage.xml \
             --cov-report=html:reports/coverage-html \
-            -q tests/
+            -q tests/ --ignore=tests/ui
 
       - name: Install Playwright browsers
         run: |
